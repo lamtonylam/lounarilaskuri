@@ -26,7 +26,6 @@ class CardPayment(BaseModel):
     
 class PaymentResponse(BaseModel):
     card_payments: List[float]
-    cash_payment: float
     total_cash_amount: float
     total_card_amount: float
     card_uses: int
@@ -52,6 +51,24 @@ async def calculate_payment(request: PaymentRequest):
     """
     try:
         result = calculate_optimal_payment(request.total_price)
+        return PaymentResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Calculation error: {str(e)}")
+
+@app.get("/{amount}", response_model=PaymentResponse)
+async def calculate_payment_by_url(amount: float):
+    """
+    Calculate the optimal way to pay for food using Edenred lunch cards.
+    
+    This endpoint calculates how to minimize cash payments by optimally using
+    lunch card payments within the daily limits. The payment amount is specified
+    as a URL parameter at the root level.
+    """
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Payment amount must be greater than 0")
+    
+    try:
+        result = calculate_optimal_payment(amount)
         return PaymentResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Calculation error: {str(e)}")
